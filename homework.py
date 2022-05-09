@@ -74,7 +74,7 @@ def check_response(response):
         logger.error(msg)
         raise exceptions.CheckResponseException(msg)
     if len(homeworks_list) == 0:
-        msg = 'За последнее время домашние работы не отправлялись'
+        msg = 'За последнее время домашние работы не отправлялись, иди учись))'
         logger.error(msg)
         raise exceptions.CheckResponseException(msg)
     if not isinstance(homeworks_list, list):
@@ -118,7 +118,7 @@ def main():
         raise exceptions.MissingRequiredTokenException(msg)
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
-    current_timestamp = int(time.time() - 604800)
+    current_timestamp = int(time.time())
     previous_status = None
     previous_error = None
 
@@ -145,7 +145,7 @@ def main():
             time.sleep(RETRY_TIME)
 
         except Exception as error:
-            message = f'Сбой в работе программы: {error}, иди чини))'
+            message = f'Сбой в работе программы: {error}'
             if previous_error != str(error):
                 previous_error = str(error)
                 send_message(bot, message)
