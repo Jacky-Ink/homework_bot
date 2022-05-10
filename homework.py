@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from http import HTTPStatus
 
 import exceptions
+from settings import ENDPOINT, HEADERS, HOMEWORK_VERDICTS, RETRY_TIME
 
 load_dotenv()
 
@@ -16,16 +17,6 @@ PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
-RETRY_TIME = 600
-ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
-HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
-
-
-HOMEWORK_VERDICTS = {
-    'approved': 'Работа проверена: ревьюеру всё понравилось. Ура!',
-    'reviewing': 'Работа взята на проверку ревьюером.',
-    'rejected': 'Работа проверена: у ревьюера есть замечания.'
-}
 
 logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(name)s - %(message)s',
@@ -63,46 +54,34 @@ def get_api_answer(current_timestamp):
 
 def check_response(response):
     """Проверяет ответ API на корректность."""
-    try:
-        homeworks_list = response['homeworks']
-    except KeyError as e:
-        msg = f'Ошибка доступа по ключу homeworks: {e}'
-        logger.error(msg)
-        raise exceptions.CheckResponseException(msg)
-    if homeworks_list is None:
-        msg = 'В ответе API нет словаря с домашними работами'
-        logger.error(msg)
-        raise exceptions.CheckResponseException(msg)
-    if len(homeworks_list) == 0:
-        msg = 'За последнее время домашние работы не отправлялись, иди учись))'
-        logger.error(msg)
-        raise exceptions.CheckResponseException(msg)
-    if not isinstance(homeworks_list, list):
-        msg = 'В ответе API домашние работы представлены не списком'
-        logger.error(msg)
-        raise exceptions.CheckResponseException(msg)
-    return homeworks_list
+    key = 'homeworks'
+    if not response[key]:
+        message = 'Ключик homeworks отсутсвует в словарике :('
+        raise KeyError(message)
+    if ((not isinstance(response, dict))
+            or (not isinstance(response[key], list))):
+        message = 'Ответ API не является словарем'
+        raise TypeError(message)
+    return response[key]
 
 
 def parse_status(homework):
     """Извлекает из информации о домашней работе ее статус."""
-    try:
-        homework_name = homework.get('homework_name')
-    except KeyError as e:
-        msg = f'Ошибка доступа по ключу homework_name: {e}'
-        logger.error(msg)
-    try:
-        homework_status = homework.get('status')
-    except KeyError as e:
-        msg = f'Ошибка доступа по ключу status: {e}'
-        logger.error(msg)
-
-    verdict = HOMEWORK_VERDICTS[homework_status]
-    if verdict is None:
-        msg = 'Неизвестный статус домашней работы'
-        logger.error(msg)
-        raise exceptions.UnknownHWStatusException(msg)
-    return f'Изменился статус проверки работы "{homework_name}". {verdict}'
+    homework_name = homework.get('homework_name')
+    homework_status = homework.get('status')
+    if (homework_status or homework_name) is None:
+        message = ('''Ошибочка с ключем (не получилось достать'''
+                   '''имя или статус работы)''')
+        logging.error(message)
+        raise KeyError(message)
+    if homework_status in HOMEWORK_VERDICTS:
+        verdict = HOMEWORK_VERDICTS[homework_status]
+    else:
+        message = 'Неожиданный статус'
+        logging.error(message)
+        raise KeyError(message)
+    return (f'Изменился статус проверки работы "'
+            f'{homework_name}". {verdict}')
 
 
 def check_tokens():
@@ -141,7 +120,6 @@ def main():
                 send_message(bot, message)
             else:
                 logger.debug('Статус не обновлен')
-
             time.sleep(RETRY_TIME)
 
         except Exception as error:
@@ -150,6 +128,7 @@ def main():
                 previous_error = str(error)
                 send_message(bot, message)
             logger.error(message)
+        finally:
             time.sleep(RETRY_TIME)
 
 
