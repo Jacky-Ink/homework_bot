@@ -54,12 +54,15 @@ def get_api_answer(current_timestamp):
 
 def check_response(response):
     """Проверяет ответ API на корректность."""
-    if (response.__contains__('homework_name')):
-        message = 'Ключ homework_name отсутсвует в словаре :('
-        raise KeyError(message)
-    if (not isinstance(response, dict)
-            or (not isinstance(response['homeworks'], list))):
+    assert len(response) != 0, False
+    if not isinstance(response, dict):
         message = 'Ответ API не является словарем'
+        raise TypeError(message)
+    if response.__contains__('homework_name'):
+        message = 'Ключ homework_name отсутсвует в словаре'
+        raise KeyError(message)
+    if not isinstance(response['homeworks'], list):
+        message = 'Ответ API не является списком'
         raise TypeError(message)
     return response['homeworks']
 
