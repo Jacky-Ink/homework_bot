@@ -54,15 +54,14 @@ def get_api_answer(current_timestamp):
 
 def check_response(response):
     """Проверяет ответ API на корректность."""
-    key = 'homeworks'
-    if not response[key]:
-        message = 'Ключик homeworks отсутсвует в словарике :('
+    if (response.__contains__('homework_name')):
+        message = 'Ключ homework_name отсутсвует в словаре :('
         raise KeyError(message)
-    if ((not isinstance(response, dict))
-            or (not isinstance(response[key], list))):
+    if (not isinstance(response, dict)
+            or (not isinstance(response['homeworks'], list))):
         message = 'Ответ API не является словарем'
         raise TypeError(message)
-    return response[key]
+    return response['homeworks']
 
 
 def parse_status(homework):
@@ -120,7 +119,6 @@ def main():
                 send_message(bot, message)
             else:
                 logger.debug('Статус не обновлен')
-            time.sleep(RETRY_TIME)
 
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
