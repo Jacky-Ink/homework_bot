@@ -57,8 +57,8 @@ def check_response(response):
     if not isinstance(response, dict):
         message = 'Ответ API не является словарем'
         raise TypeError(message)
-    if 'homework_name' in response:
-        message = 'Ключ homework_name отсутсвует в словаре'
+    if 'homeworks' not in response:
+        message = 'Ключ homeworks отсутсвует в словаре'
         raise KeyError(message)
     if not isinstance(response['homeworks'], list):
         message = 'Ответ API не является списком'
